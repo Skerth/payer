@@ -1,0 +1,122 @@
+<?php
+
+/**
+ * @file
+ * Contains install and update functions for Payer.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function payer_schema() {
+  $schema['payer_transactions'] = array(
+    'description' => 'The table stores information about each transaction of the user.',
+    'fields' => array(
+      'tid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'description' => 'Unique transaction ID.',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => 'The {users}.uid that owns this transaction; initially, this is the user that created it.',
+      ),
+      'status' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'act' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'amount' => array(
+        'type' => 'numeric',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+        'precision' => 12,
+        'scale' => 6,
+      ),
+      'created' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => 'Time of transaction creation',
+      ),
+      'method' => array(
+        'type' => 'varchar',
+        'not null' => FALSE,
+        'length' => 255,
+        'default' => '',
+      ),
+      'info' => array(
+        'type' => 'varchar',
+        'not null' => FALSE,
+        'length' => 255,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('tid'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function payer_install() {
+  variable_set('payer_payment_url', 'payment');
+
+  // Create user field Wallet
+  field_create_field(
+    array(
+      'field_name' => 'payer_wallet',
+      'type' => 'number_float',
+      'cardinality' => 1,
+    )
+  );
+  // Create instance Wallet
+  field_create_instance(
+    array(
+      'field_name' => 'payer_wallet',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'label' => st('Wallet'),
+      'widget' => array(
+        'type' => 'number',
+      ),
+      'settings' => array(
+        'text_processing' => TRUE,
+        'min' => 0,
+        'decimal_separator' => '.',
+      ),
+      'display' => array(
+        'default' => array(
+          'type' => 'number_float',
+        ),
+      ),
+      'default_value' => array(
+        array(
+          'value' => 0
+        )
+      )
+    )
+  );
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function payer_uninstall() {
+  variable_del('payer_payment_url');
+}

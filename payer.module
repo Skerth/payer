@@ -1,0 +1,232 @@
+<?php
+
+/**
+ * @file Payer engine module
+ */
+
+/**
+ * Implements hook_init().
+ */
+function payer_init() {
+  $module_path = drupal_get_path('module', 'payer');
+  drupal_add_css($module_path . '/css/payer.css');
+}
+
+/**
+ * Implements hook_menu().
+ */
+function payer_menu() {
+  $items = array();
+
+  $items['admin/config/payer'] = array(
+    'title' => 'Payer',
+    'description' => 'All transactions.',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'payer_transactions_list',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'includes/payer.admin.inc',
+  );
+  // описание дефолтной вкладки
+  $items['admin/config/payer/transactions'] = array(
+    'title' => 'Transactions',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => '-50',
+  );
+
+  $items['admin/config/payer/add'] = array(
+    'title' => 'Add transaction',
+    'description' => 'Configure Payer.',
+    'type' => MENU_LOCAL_ACTION,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('payer_add_transaction_form'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'includes/payer.admin.inc',
+  );
+
+  $items['admin/config/payer/transactions/%'] = array(
+    'title' => 'Transaction',
+    'type' => MENU_SUGGESTED_ITEM,
+    'page callback' => 'payer_transaction_view',
+    'page arguments' => array(4),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'includes/payer.admin.inc',
+  );
+
+  $items['admin/config/payer/settings'] = array(
+    'title' => 'Settings',
+    'description' => 'Configure Payer.',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('payer_settings_form'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'weight' => '-49',
+    'file' => 'includes/payer.admin.inc',
+  );
+
+  $items['admin/config/payer/methods'] = array(
+    'title' => 'Payment methods',
+    'description' => 'Connected payment methods.',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'payer_methods_list',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'weight' => '0',
+    'file' => 'includes/payer.admin.inc',
+  );
+
+  $items[variable_get('payer_payment_url')] = array(
+    'title' => 'Top up your wallet',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('payer_payment_form'),
+    'access callback' => 'user_access',
+    'access arguments' => array('access content'),
+  );
+  return $items;
+}
+
+/**
+ * Implement hook_theme().
+ *
+ * @see payer_methods_list()
+ * @see payer_transactions_list()
+ */
+function payer_theme() {
+  return array(
+    'payer_template_methods_list' => array(
+      // file name will be payer-methods-list.tpl.php
+      'template' => 'templates/payer-methods-list',
+      'variables' => array('page_data' => NULL),
+    ),
+    'payer_template_transactions_list' => array(
+      // file name will be payer-transactions-list.tpl.php
+      'template' => 'templates/payer-transactions-list',
+      'variables' => array('page_data' => NULL),
+    ),
+    'payer_template_transaction_view' => array(
+      // file name will be payer-transaction-view.tpl.php
+      'template' => 'templates/payer-transaction-view',
+      'variables' => array('transaction' => NULL),
+    ),
+  );
+}
+
+/**
+ * Form on the purse recharge page
+ *
+ * @see _get_methods()
+ */
+function payer_payment_form($form) {
+  $form['#attributes'] = array('class' => array('payer-form-payment'));
+
+  $form['payer_amount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Amount'),
+    '#required' => TRUE,
+    '#maxlength' => 30,
+    '#element_validate' => array('element_validate_number'),
+    '#weight' => -50,
+    '#attributes' => array('class' => array('payer-amount')),
+  );
+
+  $form['payer_method'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Methods'),
+    '#description' => t('Choose payment method'),
+    '#weight' => -49,
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+    '#tree' => FALSE,
+    '#attributes' => array('class' => array('payer-method')),
+  );
+
+  $existing_methods = _get_methods();
+
+  $enabled_methods = array();
+
+  foreach ($existing_methods as $pay_method) {
+    if (module_exists($pay_method->name)) {
+      $info = drupal_parse_info_file($pay_method->uri);
+      $image_preview = drupal_get_path('module', $pay_method->name) . '/preview.png';
+      if (file_exists($image_preview)) {
+        $image_preview = theme('image',
+          array(
+            'path' => $image_preview,
+            'title' => 'Pay by ' . $info['name'],
+            'alt' => $info['name'],
+            'attributes' => array('class' => 'payer-method-preview'),
+          )
+        );
+      }
+      else {
+        $image_preview = NULL;
+      }
+      $info['name'] = '<span class="payer-method-name">' . $info['name'] . '</span>';
+      $enabled_methods[$pay_method->name] = $image_preview . $info['name'];
+    }
+  }
+
+  $form['payer_method']['methods'] = array(
+    '#title' => 'Methods',
+    '#type' => 'radios',
+    '#options' => $enabled_methods,
+    '#required' => TRUE,
+  );
+
+  $form['actions'] = array(
+    '#weight' => 50,
+  );
+
+  $form['actions']['custom_submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Payment'),
+  );
+
+  $form['#submit'] = array('payer_payment_form_submit');
+
+  return $form;
+}
+
+/**
+ * Submit handler of the purse recharge form
+ */
+function payer_payment_form_submit($form, &$form_state)  {
+  global $user;
+  $amount = number_format($form_state['values']['payer_amount'], 2, '.', '');
+  $method = $form_state['values']['methods'];
+
+  $pay_handler = $method . '_handler';
+  if (function_exists($pay_handler)) {
+    $pay_handler($user->uid, $amount);
+  }
+  else {
+    throw new Exception('Function "' . $pay_handler . '" not found!');
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function payer_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'user_profile_form') {
+    $form['payer_wallet']['#access'] = FALSE;
+  }
+}
+
+/**
+ * Receives all payment methods from the module folder "payer/methods"
+ *
+ * @see payer_payment_form()
+ * @see payer_methods_list()
+ */
+function _get_methods() {
+  $dir_methods = DRUPAL_ROOT . '/' . drupal_get_path('module', 'payer') . '/methods' ;
+  // Поиск файлов .info по указанному пути.
+  $existing_methods = file_scan_directory($dir_methods, '/.*\.info/');
+
+  return $existing_methods;
+}
