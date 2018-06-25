@@ -5,14 +5,6 @@
  */
 
 /**
- * Implements hook_init().
- */
-function payer_init() {
-  $module_path = drupal_get_path('module', 'payer');
-  drupal_add_css($module_path . '/css/payer.css');
-}
-
-/**
  * Implements hook_menu().
  */
 function payer_menu() {
@@ -27,7 +19,7 @@ function payer_menu() {
     'access arguments' => array('administer site configuration'),
     'file' => 'includes/payer.admin.inc',
   );
-  // описание дефолтной вкладки
+
   $items['admin/config/payer/transactions'] = array(
     'title' => 'Transactions',
     'type' => MENU_DEFAULT_LOCAL_TASK,
@@ -90,7 +82,8 @@ function payer_menu() {
 }
 
 /**
- * Implement hook_theme().
+ * Implement hook_theme() for payer-methods-list.tpl.php,
+ * payer-transactions-list.tpl.php, payer-transaction-view.tpl.php.
  *
  * @see payer_methods_list()
  * @see payer_transactions_list()
@@ -98,17 +91,14 @@ function payer_menu() {
 function payer_theme() {
   return array(
     'payer_template_methods_list' => array(
-      // file name will be payer-methods-list.tpl.php
       'template' => 'templates/payer-methods-list',
       'variables' => array('page_data' => NULL),
     ),
     'payer_template_transactions_list' => array(
-      // file name will be payer-transactions-list.tpl.php
       'template' => 'templates/payer-transactions-list',
       'variables' => array('page_data' => NULL),
     ),
     'payer_template_transaction_view' => array(
-      // file name will be payer-transaction-view.tpl.php
       'template' => 'templates/payer-transaction-view',
       'variables' => array('transaction' => NULL),
     ),
@@ -118,9 +108,12 @@ function payer_theme() {
 /**
  * Form on the purse recharge page
  *
- * @see _get_methods()
+ * @see payer_get_methods()
  */
 function payer_payment_form($form) {
+  $module_path = drupal_get_path('module', 'payer');
+  drupal_add_css($module_path . '/css/payer.css');
+
   $form['#attributes'] = array('class' => array('payer-form-payment'));
 
   $form['payer_amount'] = array(
@@ -144,7 +137,7 @@ function payer_payment_form($form) {
     '#attributes' => array('class' => array('payer-method')),
   );
 
-  $existing_methods = _get_methods();
+  $existing_methods = payer_get_methods();
 
   $enabled_methods = array();
 
@@ -218,14 +211,14 @@ function payer_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /**
- * Receives all payment methods from the module folder "payer/methods"
+ * Receives all payment methods from the module folder "methods"
  *
  * @see payer_payment_form()
  * @see payer_methods_list()
  */
-function _get_methods() {
+function payer_get_methods() {
   $dir_methods = DRUPAL_ROOT . '/' . drupal_get_path('module', 'payer') . '/methods' ;
-  // Поиск файлов .info по указанному пути.
+  // Search for .info files by the specified path:
   $existing_methods = file_scan_directory($dir_methods, '/.*\.info/');
 
   return $existing_methods;

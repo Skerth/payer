@@ -162,14 +162,14 @@ class PayerTransaction {
    * Record the calculated value of "$this->sum_balance" in the database.
    **/
   private function save_user_balance() {
-    $this->user->payer_wallet['und'][0]['value'] = $this->sum_balance;
+    $this->user->payer_wallet[LANGUAGE_NONE][0]['value'] = $this->sum_balance;
     $field_info = field_info_field('payer_wallet');
 
     field_sql_storage_field_storage_write(
       'user',
       $this->user,
       'update',
-      [$field_info['id']]
+      array($field_info['id'])
     );
 
     cache_clear_all("field:user:{$this->user->uid}", 'cache_field');

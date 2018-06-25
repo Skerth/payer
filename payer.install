@@ -75,6 +75,7 @@ function payer_schema() {
  * Implements hook_install().
  */
 function payer_install() {
+  $t = get_t();
   variable_set('payer_payment_url', 'payment');
 
   // Create user field Wallet
@@ -91,7 +92,7 @@ function payer_install() {
       'field_name' => 'payer_wallet',
       'entity_type' => 'user',
       'bundle' => 'user',
-      'label' => st('Wallet'),
+      'label' => $t('Wallet'),
       'widget' => array(
         'type' => 'number',
       ),

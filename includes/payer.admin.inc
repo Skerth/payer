@@ -5,7 +5,6 @@
  * Provides the Payer administrative interface.
  */
 
-
 /**
  * PAGE SETTINGS
  */
@@ -224,9 +223,9 @@ function payer_transactions_list_filter_form($form) {
     '#title' => t('Act'),
     '#default_value' => isset($session['act']) ? $session['act'] : '',
     '#options' => array(
-      '[any]' => '- Any -',
-      0 => 'Spending',
-      1 => 'Coming',
+      '[any]' => t('- Any -'),
+      0 => t('Spending'),
+      1 => t('Coming'),
     ),
   );
 
@@ -235,9 +234,9 @@ function payer_transactions_list_filter_form($form) {
     '#title' => t('Status'),
     '#default_value' => isset($session['status'])  ? $session['status'] : '',
     '#options' => array(
-      '[any]' => '- Any -',
-      0 => 'Waiting',
-      1 => 'Completed',
+      '[any]' => t('- Any -'),
+      0 => t('Waiting'),
+      1 => t('Completed'),
     ),
   );
 
@@ -402,8 +401,8 @@ function payer_add_transaction_form($form) {
     '#type' => 'radios',
     '#title' => t('Act'),
     '#options' => array(
-      0 => 'Spending',
-      1 => 'Coming',
+      0 => t('Spending'),
+      1 => t('Coming'),
     ),
     '#required' => TRUE,
   );
@@ -412,8 +411,8 @@ function payer_add_transaction_form($form) {
     '#type' => 'radios',
     '#title' => t('Status'),
     '#options' => array(
-      0 => 'Waiting',
-      1 => 'Completed',
+      0 => t('Waiting'),
+      1 => t('Completed'),
     ),
     '#required' => TRUE,
   );
@@ -488,11 +487,11 @@ function payer_add_transaction_form_validate($form, &$form_state) {
 function payer_add_transaction_form_submit($form, &$form_state) {
   $username = $form_state['values']['payer_transaction_username'];
 
-  if (!empty($username)) {
-    $user = user_load_by_name($form_state['values']['payer_transaction_username']);
+  if (empty($username)) {
+    global $user;
   }
   else {
-    global $user;
+    $user = user_load_by_name($form_state['values']['payer_transaction_username']);
   }
 
   $vars = array();
@@ -519,11 +518,11 @@ function payer_add_transaction_form_submit($form, &$form_state) {
 /**
  * Handler of the pages of the list of methods of the module Payer
  *
- * @see _get_methods()
+ * @see payer_get_methods()
  * @see payer_theme()
  **/
 function payer_methods_list() {
-  $existing_methods = _get_methods();
+  $existing_methods = payer_get_methods();
   // Table header with content
   $headers = array(
     array('class' => array('pay-method_status')),

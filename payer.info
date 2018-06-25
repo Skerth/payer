@@ -1,7 +1,6 @@
 name = Payer
 description = Integrate payment methods into your website.
 core = 7.x
-version = "7.x-1.0"
 package = "Payment"
 dependencies[] = node
 dependencies[] = number
