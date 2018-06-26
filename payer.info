@@ -8,7 +8,4 @@ dependencies[] = list
 
 configure = admin/config/payer
 
-files[] = payer.install
-files[] = payer.module
-
 files[] = includes/payer.transaction.inc
