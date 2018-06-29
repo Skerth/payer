@@ -77,6 +77,8 @@ function payer_schema() {
 function payer_install() {
   $t = get_t();
   variable_set('payer_payment_url', 'payment');
+  variable_set('payer_payment_success_url', 'payment/success');
+  variable_set('payer_payment_fail_url', 'payment/fail');
 
   // Create user field Wallet
   field_create_field(
@@ -120,4 +122,6 @@ function payer_install() {
  */
 function payer_uninstall() {
   variable_del('payer_payment_url');
+  variable_del('payer_payment_success_url');
+  variable_del('payer_payment_fail_url');
 }
