@@ -22,7 +22,35 @@ function payer_settings_form($form) {
     '#default_value' => variable_get('payer_payment_url'),
     '#required' => TRUE,
     '#maxlength' => 255,
+  ); /**
+   * Wrapper for URLs
+   */
+  $form['main_settings']['urls'] = array(
+    '#type' => 'fieldset',
+    '#title' => t("URLs"),
+    '#description' => t("Use a relative path and don't add a trailing slash or the URL won't work."),
+    '#weight' => 1,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#tree' => FALSE,
   );
+
+  $form['main_settings']['urls']['payer_payment_success_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL success'),
+    '#field_prefix' => $_SERVER['SERVER_NAME'] . '/',
+    '#default_value' => variable_get('payer_payment_success_url', ''),
+    '#maxlength' => 255,
+  );
+
+  $form['main_settings']['urls']['payer_payment_fail_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL fail'),
+    '#field_prefix' => $_SERVER['SERVER_NAME'] . '/',
+    '#default_value' => variable_get('payer_payment_fail_url', ''),
+    '#maxlength' => 255,
+  );
+
   $form = system_settings_form($form);
   array_unshift($form['#submit'], 'payer_settings_form_submit');
 
@@ -35,9 +63,18 @@ function payer_settings_form($form) {
  * @see payer_settings()
  */
 function payer_settings_form_submit($form, &$form_state) {
-  $payment_url = variable_get('payer_payment_url');
-  // Если любой из url отличается, перестраиваем меню.
-  if ($form_state['values']['payer_payment_url'] != $payment_url) {
+  $urls = array(
+    'payment' => variable_get('payer_payment_url'),
+    'success' => variable_get('payer_payment_success_url'),
+    'fail' => variable_get('payer_payment_fail_url'),
+  );
+
+  // If any of the url is different, rebuild the menu:
+  $is_url_payment_different = $form_state['values']['payer_payment_url'] != $urls['payment'];
+  $is_url_success_different = $form_state['values']['payer_payment_success_url'] != $urls['success'];
+  $is_url_fail_different = $form_state['values']['payer_payment_fail_url'] != $urls['fail'];
+
+  if ($is_url_payment_different || $is_url_success_different || $is_url_fail_different) {
     menu_rebuild();
     drupal_set_message(t('The menu has been rebuilt.'));
   }
