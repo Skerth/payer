@@ -342,10 +342,9 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
  * @see payer_theme()
  */
 function payer_transaction_view($tid) {
-  $vars = array('tid' => $tid);
-  $transaction = new PayerTransaction($vars);
-  $transaction->transaction();
+  $transaction = new PayerTransaction($tid);
   $transaction = $transaction->get_transaction();
+
 
   if ($transaction) {
     $page_data = array();
@@ -381,12 +380,12 @@ function payer_transaction_view($tid) {
 
         case 'info':
           $info = '';
-          foreach ($data as $key_item => $item) {
+          /*foreach ($data as $key_item => $item) {
             $info .= ucfirst($key_item) . ': ';
             $info .= "$item; ";
-          }
+          }*/
           $page_data['info']['label'] = 'Info';
-          $page_data['info']['value'] = $info;
+          $page_data['info']['value'] = $data;
           break;
 
         default:
@@ -498,19 +497,20 @@ function payer_add_transaction_form_validate($form, &$form_state) {
   $act = $form_state['values']['payer_transaction_act'];
   $amount = $form_state['values']['payer_transaction_amount'];
 
-  $user = user_load_by_name($form_state['values']['payer_transaction_username']);
-
-  if (empty($user)) {
+  if ($form_state['values']['payer_transaction_username'] == '') {
     form_set_error('payer_transaction_username', t('User not found.'));
   }
+  else {
+    $user = user_load_by_name($form_state['values']['payer_transaction_username']);
 
-  if (!empty($amount)) {
-    // Class PayerTransaction is in the file "includes/payer.transaction.inc".
-    $balance = PayerTransaction::get_user_balance($user);
-    $sum_balance = PayerTransaction::calc_sum_balance($act, $balance, $amount);
+    if (!empty($amount)) {
+      // Class PayerTransaction is in the file "includes/payer.transaction.inc".
+      $balance = PayerTransaction::get_user_balance($user);
+      $sum_balance = PayerTransaction::calc_sum_balance($act, $balance, $amount);
 
-    if (isset($amount) && $act == 0 && $sum_balance < 0) {
-      form_set_error('payer_transaction_amount', t('Insufficient funds!'));
+      if (isset($amount) && $act == 0 && $sum_balance < 0) {
+        form_set_error('payer_transaction_amount', t('Insufficient funds!'));
+      }
     }
   }
 }
@@ -544,7 +544,7 @@ function payer_add_transaction_form_submit($form, &$form_state) {
   $vars['created'] = REQUEST_TIME;
 
   $transaction = new PayerTransaction($vars);
-  $transaction->transaction();
+  $transaction->save();
 }
 
 
