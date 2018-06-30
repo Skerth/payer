@@ -6,123 +6,69 @@
  */
 
 class PayerTransaction {
+  private $transaction = array();
 
-  /**
-   * Data received by the object PayerTransaction.
-   * Possible array keys:
-   *   - 'tid': transaction TID. Transmitted if you want to work with an
-   *      existing transaction;
-   *   - 'uid': user UID. Example: $user->uid;
-   *   - 'status': transaction status. Can be "0" (Waiting) or "1" (Completed);
-   *   - 'act': transaction action. Can be "0" (Spending) or "1" (Coming);
-   *   - 'amount': the amount of replenishment or cancellation from the user's
-   *      wallet. Should be a floating number with a decimal separator
-   *      in the form of a dot;
-   *   - 'method': selected payment method. Plain text string.
-   *      Example: Manual, Robokassa, PayPal;
-   *   - 'info': array of values required for a specific payment method;
-   *   - 'created': date of transaction creation. Should be in Unixtime.
-   */
-  private $data = [];
+  private $old_status;
 
-  /**
-   * All properties of the current object. Contains the same list
-   * as @var array $data.
-   *
-   * @see get_transaction().
-   *
-   */
-  private $transaction = [];
-
-  /**
-   * User object Drupal.
-   **/
   private $user;
 
-  /**
-   * The amount of money on the user's account. User field "payer_wallet".
-   **/
   private $balance;
 
-  /**
-   * How much money will remain after the action with the wallet:
-   *   a) when wasting money: ['act'] = 0 - difference $wallet and $amount;
-   *   b) when replenishing money: ['act'] = 1 - sum $wallet and $amount.
-   **/
   private $sum_balance;
 
-  public function __construct($vars) {
-    $this->data = $vars;
-    if (!isset($this->data['info'])) {
-      $this->data['info'] = array();
+  public function __construct($data) {
+    if (isset($data['tid'])) {
+      $this->transaction['tid'] = $data['tid'];
+    }
+    elseif (gettype($data) !== 'array' && $data > 0) {
+      $this->transaction['tid'] = $data;
+    }
+
+    if (isset($this->transaction['tid'])) {
+      $this->transaction = $this->load_transaction();
+    }
+    else {
+      $this->transaction['uid'] = $data['uid'];
+      $this->transaction['act'] = $data['act'];
+      $this->transaction['status'] = $data['status'];
+      $this->transaction['amount'] = $data['amount'];
+      $this->transaction['method'] = $data['method'];
+      $this->transaction['created'] = $data['created'];
+      $this->transaction['info'] = $data['info'];
     }
   }
 
-  /**
-   * Main transaction handler.
-   *
-   * @see load_transaction()
-   * @see save_transaction()
-   * @see handler_user_balance()
-   * @see save_transaction_status()
-   */
-  public function transaction() {
-    /**
-     * If the request for an existing transaction. Example: you need to get
-     * transaction data or change the status of a transaction.
-     */
-    if (isset($this->data['tid'])) {
-      // If the transaction has not yet been loaded into the properties
-      // of the object
-      if (empty($this->transaction)) {
-        $this->transaction = $this->load_transaction(); // download.
-      }
-
-      // Change of transaction status.
-      if (isset($this->data['status'])
-        && $this->transaction['status'] != $this->data['status']
-      ) {
-        $this->save_transaction_status();
+  public function save() {
+    if (!isset($this->transaction['tid'])) {
+      $this->save_transaction();
+      if($this->transaction['status'] == 1) {
         $this->handler_user_balance();
       }
     }
     else {
-      // Saving a transaction.
-      $this->save_transaction();
-      $this->handler_user_balance();
+      $this->update_transaction();
+      if($this->old_status == 0 && $this->transaction['status'] == 1) {
+        $this->handler_user_balance();
+      }
     }
   }
 
   /**
-   * Set transaction status.
+   * Set transaction data.
    *
-   * @param $status - transaction status.
-   *        Can be "0" (Waiting) or "1" (Completed).
+   * @param $data - array transaction data.
+   * Only info and status keys are allowed
+   *
    */
-  public function set_transaction_status($status) {
-    if (!empty($status)) {
-      $this->data['status'] = $status;
+  public function set_transaction_data($data) {
+    if (isset($data['status'])) {
+      $this->old_status = $this->transaction['status'];
+      $this->transaction['status'] = $data['status'];
     }
-  }
 
-  /**
-   * Get a transaction from the database as an array.
-   */
-  private function load_transaction() {
-    return db_select('payer_transactions', 't')
-      ->fields('t', [
-        'tid',
-        'uid',
-        'status',
-        'act',
-        'amount',
-        'created',
-        'info',
-        'method',
-      ])
-      ->condition('t.tid', $this->data['tid'])
-      ->execute()
-      ->fetchAssoc();
+    if (isset($data['info'])) {
+      $this->transaction['info'] = $data['info'];
+    }
   }
 
   /**
@@ -131,9 +77,49 @@ class PayerTransaction {
    * @return array $this->transaction.
    */
   public function get_transaction() {
-    $this->transaction['info'] = unserialize($this->transaction['info']);
-
     return $this->transaction;
+  }
+
+  /**
+   * Get a transaction from the database as an array.
+   */
+  private function load_transaction() {
+    return db_select('payer_transactions', 't')
+      ->fields('t', array(
+        'tid',
+        'uid',
+        'status',
+        'act',
+        'amount',
+        'created',
+        'info',
+        'method',
+      ))
+      ->condition('t.tid', $this->transaction['tid'])
+      ->execute()
+      ->fetchAssoc();
+  }
+
+  /**
+   * Saving a new transaction to the database.
+   */
+  private function save_transaction() {
+    $this->transaction['tid'] = db_insert('payer_transactions')
+      ->fields($this->transaction)
+      ->execute();
+  }
+
+  /**
+   * Update transaction data. Only info and status are available for updating
+   */
+  private function update_transaction() {
+    db_update('payer_transactions')
+      ->fields(array(
+        'status' => $this->transaction['status'],
+        'info' => $this->transaction['info'],
+      ))
+      ->condition('tid', $this->transaction['tid'])
+      ->execute();
   }
 
   /**
@@ -145,17 +131,8 @@ class PayerTransaction {
       global $user;
       $this->transaction['uid'] = $user->uid;
     }
-    return user_load($this->transaction['uid']);
-  }
 
-  /**
-   * Save transaction status.
-   */
-  private function save_transaction_status() {
-    db_update('payer_transactions')
-      ->fields(['status' => $this->data['status']])
-      ->condition('tid', $this->transaction['tid'])
-      ->execute();
+    $this->user = user_load($this->transaction['uid']);
   }
 
   /**
@@ -176,45 +153,25 @@ class PayerTransaction {
   }
 
   /**
-   * Saving a new transaction to the database.
-   */
-  private function save_transaction() {
-    $this->transaction['uid'] = $this->data['uid'];
-    $this->transaction['status'] = $this->data['status'];
-    $this->transaction['act'] = $this->data['act'];
-    $this->transaction['amount'] = $this->data['amount'];
-    $this->transaction['method'] = $this->data['method'];
-    $this->transaction['info'] = serialize($this->data['info']);
-    $this->transaction['created'] = $this->data['created'];
-
-    $tid = db_insert('payer_transactions')
-      ->fields($this->transaction)
-      ->execute();
-
-    $this->transaction['tid'] = $tid;
-  }
-
-  /**
    * Processes user balance. Performed if the status of transaction 1 (Completed).
    *
    * @see get_user_object()
    * @see get_user_balance()
    * @see calc_sum_balance()
    * @see save_user_balance()
+   *
    */
   private function handler_user_balance() {
-    if ($this->data['status'] == 1) {
-      $this->user = $this->get_user_object();
-      $this->balance = self::get_user_balance($this->user);
+    $this->get_user_object();
+    $this->balance = self::get_user_balance($this->user);
 
-      $this->sum_balance = self::calc_sum_balance(
-        $this->transaction['act'],
-        $this->balance,
-        $this->transaction['amount']
-      );
+    $this->sum_balance = self::calc_sum_balance(
+      $this->transaction['act'],
+      $this->balance,
+      $this->transaction['amount']
+    );
 
-      $this->save_user_balance();
-    }
+    $this->save_user_balance();
   }
 
   /**
