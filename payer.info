@@ -2,9 +2,7 @@ name = Payer
 description = Integrate payment methods into website.
 core = 7.x
 package = "Payment"
-dependencies[] = node
-dependencies[] = number
-dependencies[] = list
+dependencies[] = user
 
 configure = admin/config/payer
 
