@@ -6,11 +6,11 @@
  */
 
 /**
- * PAGE SETTINGS
+ * PAGE SETTINGS.
  */
 
 /**
- * Form of settings where you can change the URL of the purse replenishment page.
+ * Form of settings where you can change the URL of purse replenishment page.
  *
  * @see payer_settings_submit()
  */
@@ -22,9 +22,9 @@ function payer_settings_form($form) {
     '#default_value' => variable_get('payer_payment_url'),
     '#required' => TRUE,
     '#maxlength' => 255,
-  ); /**
-   * Wrapper for URLs
-   */
+  );
+  
+  // Wrapper for URLs:
   $form['main_settings']['urls'] = array(
     '#type' => 'fieldset',
     '#title' => t("URLs"),
@@ -82,12 +82,14 @@ function payer_settings_form_submit($form, &$form_state) {
 
 
 /**
- * PAGE TRANSACTIONS LIST
+ * PAGE TRANSACTIONS LIST.
  */
 
 /**
  * Contains a list of possible transaction filters.
- * @return array $filters
+ *
+ * @return array
+ *   $filters
  */
 function payer_transaction_filters() {
   $keys = array(
@@ -106,11 +108,11 @@ function payer_transaction_filters() {
 /**
  * Applies filters for transactions administration filters based on session.
  *
- * @param $query
+ * @param SelectQueryInterface $query
  *   A SelectQuery to which the filters should be applied.
  */
 function payer_build_filter_transactions_query(SelectQueryInterface $query, $session) {
-  // Build conditions query
+  // Build conditions query:
   foreach ($session as $filter => $options) {
     if ($filter == 'username') {
       $user = user_load_by_name($session['username']);
@@ -146,7 +148,7 @@ function payer_transactions_list() {
     array('data' => 'Info', 'field' => 'info'),
   );
 
-  // Generate query to database
+  // Generate query to database:
   $query = db_select('payer_transactions', 't');
   $query->fields('t',
       array(
@@ -180,7 +182,10 @@ function payer_transactions_list() {
       $user_link,
       array(
         'data'  => $transaction->amount,
-        'class' => array('transaction-amount', 'transaction-amount-' . $transaction->act)
+        'class' => array(
+          'transaction-amount',
+          'transaction-amount-' . $transaction->act,
+        ),
       ),
       $transaction->act ? 'Coming' : 'Spending',
       $transaction->status ? 'Completed' : 'Waiting',
@@ -192,10 +197,15 @@ function payer_transactions_list() {
   $filter_form = drupal_get_form('payer_transactions_list_filter_form');
 
   $page_form_filter = drupal_render($filter_form);
-  $page_data = theme('table', array('header' => $header, 'rows' => $rows, 'empty' => t('No transaction available.')));
+  $page_data = theme('table',
+    array(
+      'header' => $header,
+      'rows' => $rows,
+      'empty' => t('No transaction available.'),
+    )
+  );
   $page_data .= theme('pager');
-
-
+  
   return theme(
     'payer_template_transactions_list',
     array(
@@ -208,10 +218,13 @@ function payer_transactions_list() {
 /**
  * Description of the form of the filtering of transactions.
  *
+ * @param array $form
+ *   The form array.
+ *
  * @see payer_transactions_list_filter_form_submit()
  *
- * @param $form
- * @return mixed $form
+ * @return array
+ *   $form
  */
 function payer_transactions_list_filter_form($form) {
   $session = isset($_SESSION['payer_transaction_overview_filter']) ? $_SESSION['payer_transaction_overview_filter'] : array();
@@ -224,7 +237,7 @@ function payer_transactions_list_filter_form($form) {
     '#collapsed' => FALSE,
     '#tree' => FALSE,
     '#attributes' => array(
-      'class' => array('clearfix')
+      'class' => array('clearfix'),
     ),
   );
 
@@ -269,7 +282,7 @@ function payer_transactions_list_filter_form($form) {
   $form['filters']['items']['filters']['status'] = array(
     '#type' => 'select',
     '#title' => t('Status'),
-    '#default_value' => isset($session['status'])  ? $session['status'] : '',
+    '#default_value' => isset($session['status']) ? $session['status'] : '',
     '#options' => array(
       '[any]' => t('- Any -'),
       0 => t('Waiting'),
@@ -280,7 +293,7 @@ function payer_transactions_list_filter_form($form) {
   $form['filters']['items']['filters']['items_per_page'] = array(
     '#type' => 'select',
     '#title' => t('Items per page'),
-    '#default_value' => isset($session['items_per_page'])  ? $session['items_per_page'] : 25,
+    '#default_value' => isset($session['items_per_page']) ? $session['items_per_page'] : 25,
     '#options' => array(
       10 => '10',
       25 => '25',
@@ -332,20 +345,23 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
 
 
 /**
- * PAGE VIEW TRANSACTION
+ * PAGE VIEW TRANSACTION.
  */
 
 /**
  * Output all information about a transaction.
  *
+ * @param $tid
+ *
  * @see PayerTransaction
  * @see payer_theme()
+ *
+ * @return string
  */
 function payer_transaction_view($tid) {
   $transaction = new PayerTransaction($tid);
   $transaction = $transaction->get_transaction();
-
-
+  
   if ($transaction) {
     $page_data = array();
 
@@ -364,12 +380,12 @@ function payer_transaction_view($tid) {
 
         case 'act':
           $page_data['act']['label'] = t('Act');
-          $page_data['act']['value'] = $data?'Coming':'Spending';
+          $page_data['act']['value'] = $data ? 'Coming' : 'Spending';
           break;
 
         case 'status':
           $page_data['status']['label'] = t('Status');
-          $page_data['status']['value'] = $data?'Completed':'Waiting';
+          $page_data['status']['value'] = $data ? 'Completed' : 'Waiting';
           break;
 
         case 'amount':
@@ -414,14 +430,19 @@ function payer_transaction_view($tid) {
 
 
 /**
- * PAGE ADD TRANSACTION
+ * PAGE ADD TRANSACTION.
  */
 
 /**
- * Description of the form of adding a transaction
+ * Description of the form of adding a transaction.
+ *
+ * @param array $form
  *
  * @see payer_add_transaction_validate()
  * @see payer_add_transaction_submit()
+ *
+ * @return array
+ *   $form
  */
 function payer_add_transaction_form($form) {
   $form['payer_transaction_amount'] = array(
@@ -488,7 +509,7 @@ function payer_add_transaction_form($form) {
 }
 
 /**
- * Validation of the form of adding a transaction
+ * Validation of the form of adding a transaction.
  *
  * @see payer_add_transaction_form()
  * @see PayerTransaction
@@ -504,7 +525,6 @@ function payer_add_transaction_form_validate($form, &$form_state) {
     $user = user_load_by_name($form_state['values']['payer_transaction_username']);
 
     if (!empty($amount)) {
-      // Class PayerTransaction is in the file "includes/payer.transaction.inc".
       $balance = PayerTransaction::get_user_balance($user);
       $sum_balance = PayerTransaction::calc_sum_balance($act, $balance, $amount);
 
@@ -516,7 +536,7 @@ function payer_add_transaction_form_validate($form, &$form_state) {
 }
 
 /**
- * Submit handler of the form of adding a transaction
+ * Submit handler of the form of adding a transaction.
  *
  * @see payer_add_transaction_form()
  * @see PayerTransaction
@@ -549,39 +569,45 @@ function payer_add_transaction_form_submit($form, &$form_state) {
 
 
 /**
- * PAGE METHODS PAYMENT LIST
+ * PAGE METHODS PAYMENT LIST.
  */
 
 /**
- * Handler of the pages of the list of methods of the module Payer
+ * Handler of the pages of the list of methods of the module Payer.
  *
  * @see payer_get_methods()
  * @see payer_theme()
- **/
+ */
 function payer_methods_list() {
   $existing_methods = payer_get_methods();
-  // Table header with content
+  // Table header with content:
   $headers = array(
     array('class' => array('pay-method_status')),
     array('data' => 'Method'),
     array('data' => 'Operations'),
   );
 
-  // Table rows with content
+  // Table rows with content:
   $rows = array();
 
-  /**
+  /*
    * Preparation of information on cash payment methods
-   * in the folder "payer/methods"
+   * in the folder "payer/methods".
    */
   foreach ($existing_methods as $pay_method) {
     $options = array(
-      'config_link' => NULL, // ссылка на конфиг метода оплаты.
-      'method_name' => NULL, // системное название метода.
-      'description' => NULL, // описание метода.
-      'image' => NULL, // изображение.
-      'info' => NULL, // информация, содержащаяся в файле .info
-      'status' => FALSE, // Флаг активности модуля
+      // Link to config payment method.
+      'config_link' => NULL,
+      // System name of the method.
+      'method_name' => NULL,
+      // Description of the method.
+      'description' => NULL,
+      // Image preview.
+      'image' => NULL,
+      // Information contained in the .info file.
+      'info' => NULL,
+      // Module activity flag.
+      'status' => FALSE,
     );
 
     $options['info'] = drupal_parse_info_file($pay_method->uri);
@@ -619,12 +645,12 @@ function payer_methods_list() {
     $options['description'] .= $options['image'];
     $options['description'] .= '<p>' . $options['info']['description'] . '</p>';
 
-    // Добавление вычесленных данных в массив $rows
+    // Adding the calculated data to an array $rows:
     $rows[$options['method_name']] = array(
       'data' => array(
         array(
           'data'  => $options['status'],
-          'class' => array('pay-method_status')
+          'class' => array('pay-method_status'),
         ),
         $options['description'],
         $options['config_link'],
@@ -632,7 +658,7 @@ function payer_methods_list() {
     );
   }
 
-  usort($rows, function($a, $b) {
+  usort($rows, function ($a, $b) {
     if ($a['data'][0]['data'] === $b['data'][0]['data']) {
       return 0;
     }
@@ -640,7 +666,7 @@ function payer_methods_list() {
     return $a['data'][0]['data'] > $b['data'][0]['data'] ? 1 : -1;
   });
 
-  // Assembling data for a page
+  // Assembling data for a page:
   $page_data = array(
     'header' => $headers,
     'rows' => $rows,
