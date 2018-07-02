@@ -1,3 +1,11 @@
+<?php
+
+/**
+ * @file
+ * Page list of all transactions template.
+ */
+?>
+
 <div id="content" class="clearfix">
   <style>
     .exposed-filters {

@@ -1,3 +1,11 @@
+<?php
+
+/**
+ * @file
+ * Transaction view page template.
+ */
+?>
+
 <style>
   .transaction-amount:before {
     font-size: 20px;
@@ -16,8 +24,12 @@
   <?php $i = 0; ?>
   <?php foreach ($page_data as $data): ?>
     <?php
-      if ($i % 2) { $class = ' even'; }
-      else { $class = ' odd'; }
+      if ($i % 2) {
+          $class = ' even';
+      }
+      else {
+          $class = ' odd';
+      }
     ?>
     <tr class="row <?php print $class; ?>">
       <th class="label" width="100">

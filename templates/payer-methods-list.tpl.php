@@ -1,3 +1,11 @@
+<?php
+
+/**
+ * @file
+ * Payer methods list template.
+ */
+?>
+
 <div id="content" class="clearfix">
   <style>
     td.pay-method_status {
