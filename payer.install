@@ -80,7 +80,7 @@ function payer_install() {
   variable_set('payer_payment_success_url', 'payment/success');
   variable_set('payer_payment_fail_url', 'payment/fail');
 
-  // Create user field Wallet
+  // Create user field Wallet:
   field_create_field(
     array(
       'field_name' => 'payer_wallet',
@@ -88,7 +88,7 @@ function payer_install() {
       'cardinality' => 1,
     )
   );
-  // Create instance Wallet
+  // Create instance Wallet:
   field_create_instance(
     array(
       'field_name' => 'payer_wallet',
@@ -110,9 +110,9 @@ function payer_install() {
       ),
       'default_value' => array(
         array(
-          'value' => 0
-        )
-      )
+          'value' => 0,
+        ),
+      ),
     )
   );
 }
