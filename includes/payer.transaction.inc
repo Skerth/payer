@@ -24,26 +24,26 @@ class PayerTransaction {
    *   - ['created']: date of transaction creation. Should be in Unixtime.
    */
   private $transaction = array();
-  
+
   /*
    * Used when updating an existing transaction, for example: 0 (Pending)
    * changed to 1 (Completed). Will store: 0.
    */
   private $old_status;
-  
+
   // User object Drupal:
   private $user;
-  
+
   // The amount of money on the user's account. User field "payer_wallet":
   private $balance;
-  
+
   /*
    * How much money will remain after the action with the wallet:
    *   a) when wasting money: ['act'] = 0 - difference $wallet and $amount;
    *   b) when replenishing money: ['act'] = 1 - sum $wallet and $amount.
    */
   private $sum_balance;
-  
+
   /**
    * PayerTransaction constructor.
    *
@@ -59,7 +59,7 @@ class PayerTransaction {
     elseif (gettype($data) !== 'array' && $data > 0) {
       $this->transaction['tid'] = $data;
     }
-    
+
     if (isset($this->transaction['tid'])) {
       $this->transaction = $this->load_transaction();
     }
@@ -73,7 +73,7 @@ class PayerTransaction {
       $this->transaction['info'] = $data['info'];
     }
   }
-  
+
   /**
    * Save or update transaction.
    *
@@ -82,6 +82,9 @@ class PayerTransaction {
    * @see handler_user_balance()
    */
   public function save() {
+    // Calling all modules implementing hook_transaction_save_alter():
+    drupal_alter('transaction_save', $this->transaction);
+
     if (!isset($this->transaction['tid'])) {
       $this->save_transaction();
       if($this->transaction['status'] == 1) {
@@ -95,7 +98,7 @@ class PayerTransaction {
       }
     }
   }
-  
+
   /**
    * Set transaction data.
    *

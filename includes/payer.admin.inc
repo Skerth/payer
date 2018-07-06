@@ -12,7 +12,11 @@
 /**
  * Form of settings where you can change the URL of purse replenishment page.
  *
+ * @param array $form
+ *
  * @see payer_settings_submit()
+ *
+ * @return array $form
  */
 function payer_settings_form($form) {
   $form['payer_payment_url'] = array(
@@ -23,7 +27,7 @@ function payer_settings_form($form) {
     '#required' => TRUE,
     '#maxlength' => 255,
   );
-  
+
   // Wrapper for URLs:
   $form['main_settings']['urls'] = array(
     '#type' => 'fieldset',
@@ -60,6 +64,9 @@ function payer_settings_form($form) {
 /**
  * Module configuration form handler.
  *
+ * @param array $form
+ * @param array $form_state
+ *
  * @see payer_settings()
  */
 function payer_settings_form_submit($form, &$form_state) {
@@ -80,7 +87,6 @@ function payer_settings_form_submit($form, &$form_state) {
   }
 }
 
-
 /**
  * PAGE TRANSACTIONS LIST.
  */
@@ -88,8 +94,7 @@ function payer_settings_form_submit($form, &$form_state) {
 /**
  * Contains a list of possible transaction filters.
  *
- * @return array
- *   $filters
+ * @return array $filters
  */
 function payer_transaction_filters() {
   $keys = array(
@@ -110,6 +115,7 @@ function payer_transaction_filters() {
  *
  * @param SelectQueryInterface $query
  *   A SelectQuery to which the filters should be applied.
+ * @param array $session
  */
 function payer_build_filter_transactions_query(SelectQueryInterface $query, $session) {
   // Build conditions query:
@@ -223,8 +229,7 @@ function payer_transactions_list() {
  *
  * @see payer_transactions_list_filter_form_submit()
  *
- * @return array
- *   $form
+ * @return array $form
  */
 function payer_transactions_list_filter_form($form) {
   $session = isset($_SESSION['payer_transaction_overview_filter']) ? $_SESSION['payer_transaction_overview_filter'] : array();
@@ -323,6 +328,9 @@ function payer_transactions_list_filter_form($form) {
 /**
  * Submit handler of the transactions filter form.
  *
+ * @param array $form
+ * @param array $form_state
+ *
  * @see payer_transactions_list_filter_form()
  * @see payer_transaction_filters()
  */
@@ -352,6 +360,7 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
  * Output all information about a transaction.
  *
  * @param $tid
+ *   transaction id
  *
  * @see PayerTransaction
  * @see payer_theme()
@@ -395,8 +404,8 @@ function payer_transaction_view($tid) {
           break;
 
         case 'info':
-          $info = '';
-          /*foreach ($data as $key_item => $item) {
+          /*$info = '';
+          foreach ($data as $key_item => $item) {
             $info .= ucfirst($key_item) . ': ';
             $info .= "$item; ";
           }*/
@@ -438,11 +447,10 @@ function payer_transaction_view($tid) {
  *
  * @param array $form
  *
- * @see payer_add_transaction_validate()
- * @see payer_add_transaction_submit()
+ * @see payer_add_transaction_form_validate()
+ * @see payer_add_transaction_form_submit()
  *
- * @return array
- *   $form
+ * @return array $form
  */
 function payer_add_transaction_form($form) {
   $form['payer_transaction_amount'] = array(
@@ -511,6 +519,9 @@ function payer_add_transaction_form($form) {
 /**
  * Validation of the form of adding a transaction.
  *
+ * @param array $form
+ * @param array $form_state
+ *
  * @see payer_add_transaction_form()
  * @see PayerTransaction
  */
@@ -537,6 +548,9 @@ function payer_add_transaction_form_validate($form, &$form_state) {
 
 /**
  * Submit handler of the form of adding a transaction.
+ *
+ * @param array $form
+ * @param array $form_state
  *
  * @see payer_add_transaction_form()
  * @see PayerTransaction
