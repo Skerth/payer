@@ -1,0 +1,108 @@
+<?php
+
+/**
+ * @file
+ * A plugin plugin for processing data using Rules.
+ */
+
+/**
+ * Implements hook_rules_event_info().
+ */
+function payer_rules_rules_event_info() {
+  // После сохранения транзакции
+}
+
+/**
+ * Implements hook_rules_condition_info().
+ */
+function payer_rules_rules_condition_info() {
+  return array(
+    'payer_rules_is_balance_negative' => array(
+      'label' => t('Checking the balance for a negative value'),
+      'group' => t('Payer'),
+      'parameter' => array(
+        'user' => array(
+          'type' => 'user',
+          'label' => t('User'),
+        ),
+        'amount' => array(
+          'type' => 'decimal',
+          'label' => t('Amount'),
+        ),
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_rules_action_info().
+ */
+function payer_rules_rules_action_info() {
+  $rules = array();
+  
+  $rules['payer_transaction'] = array(
+      'label' => t('Transaction'),
+      'group' => t('Payer'),
+      'base' => 'payer_rules_action_set_transaction',
+      'parameter' => array(
+        'user' => array(
+          'type' => 'user',
+          'label' => t('User'),
+        ),
+        'act' => array(
+          'type' => 'text',
+          'label' => t('Act'),
+          'options list' => 'payer_rules_act_options',
+          'restriction' => 'input',
+          'default value' => '1',
+        ),
+        'amount' => array(
+          'type' => 'decimal',
+          'label' => t('Amount'),
+        ),
+      ),
+      'provides' => array(),
+    );
+  
+  return $rules;
+}
+
+/**
+ * Condition callback.
+ */
+function payer_rules_is_balance_negative($user, $amount) {
+  $balance = PayerTransaction::get_user_balance($user);
+  $sum_balance = PayerTransaction::calc_sum_balance(0, $balance, $amount);
+
+  if($sum_balance >= 0) {
+    return TRUE;
+  }
+  
+  return FALSE;
+}
+
+function payer_rules_act_options() {
+  $options = array(
+    0 => '( - )',
+    1 => '( + )',
+  );
+  
+  return $options;
+}
+
+function payer_rules_action_set_transaction($user, $act, $amount) {
+  $vars = array();
+  $vars['uid'] = $user->uid;
+  $vars['status'] = 1;
+  $vars['act'] = $act;
+
+  $vars['amount'] = $amount;
+  $vars['amount'] = number_format($vars['amount'], 2, '.', '');
+
+  $vars['method'] = 'Module Rules';
+  $vars['info'] = '';
+  $vars['created'] = REQUEST_TIME;
+  
+  $transaction = new PayerTransaction($vars);
+  $transaction->save();
+}
