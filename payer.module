@@ -5,6 +5,14 @@
  * Payer engine module.
  */
 
+function payer_permission(){
+  return array('view page payment'
+  => array(
+      'title' => t('View payment page'),
+    ),
+  );
+}
+
 /**
  * Implements hook_menu().
  */
@@ -78,12 +86,12 @@ function payer_menu() {
   );
 
   $items[$urls['payment']] = array(
-    'title' => 'Top up your wallet',
-    'type' => MENU_NORMAL_ITEM,
+    'title' => 'Payment',
+    'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('payer_payment_form'),
     'access callback' => 'user_access',
-    'access arguments' => array('access content'),
+    'access arguments' => array('view page payment'),
   );
 
   $items[$urls['success']] = array(
@@ -143,7 +151,8 @@ function payer_theme() {
  *
  * @return array $form
  */
-function payer_payment_form($form) {
+function payer_payment_form($form) {// HTTP parameters:
+  $amount = isset($_GET['amount']) ? (float) $_GET['amount'] : NULL;
   $module_path = drupal_get_path('module', 'payer');
   drupal_add_css($module_path . '/css/payer.css');
 
@@ -152,6 +161,7 @@ function payer_payment_form($form) {
   $form['payer_amount'] = array(
     '#type' => 'textfield',
     '#title' => t('Amount'),
+    '#default_value' => $amount,
     '#required' => TRUE,
     '#maxlength' => 30,
     '#element_validate' => array('element_validate_number'),
