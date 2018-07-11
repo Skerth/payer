@@ -151,7 +151,6 @@ function payer_transactions_list() {
     array('data' => 'Status', 'field' => 'status'),
     array('data' => 'Method', 'field' => 'method'),
     array('data' => 'Created', 'field' => 'created'),
-    array('data' => 'Info', 'field' => 'info'),
   );
 
   // Generate query to database:
@@ -165,7 +164,6 @@ function payer_transactions_list() {
         'act',
         'status',
         'method',
-        'info',
       )
     )
     ->extend('PagerDefault')
@@ -197,7 +195,6 @@ function payer_transactions_list() {
       $transaction->status ? 'Completed' : 'Waiting',
       $transaction->method,
       format_date($transaction->created, 'short'),
-      $transaction->info,
     );
   }
   $filter_form = drupal_get_form('payer_transactions_list_filter_form');
@@ -378,39 +375,48 @@ function payer_transaction_view($tid) {
       switch ($key) {
         case 'uid':
           $user = user_load($data);
-          $page_data['user']['label'] = t('User');
-          $page_data['user']['value'] = l($user->name, 'user/' . $data);
+          $page_data['user'] = array(
+            'label' => t('User'),
+            'value' => l($user->name, 'user/' . $data),
+          );
           break;
 
         case 'created':
-          $page_data['created']['label'] = t('Created');
-          $page_data['created']['value'] = format_date($data, 'short');
+          $page_data['created'] = array(
+            'label' => t('Created'),
+            'value' => format_date($data, 'short'),
+          );
           break;
 
         case 'act':
-          $page_data['act']['label'] = t('Act');
-          $page_data['act']['value'] = $data ? 'Coming' : 'Spending';
+          $page_data['act'] = array(
+            'label' => t('Act'),
+            'value' => $data ? 'Coming' : 'Spending',
+          );
           break;
 
         case 'status':
-          $page_data['status']['label'] = t('Status');
-          $page_data['status']['value'] = $data ? 'Completed' : 'Waiting';
+          $page_data['status'] = array(
+            'label' => t('Status'),
+            'value' => $data ? 'Completed' : 'Waiting',
+          );
           break;
 
         case 'amount':
-          $page_data['amount']['label'] = t('Amount');
-          $page_data['amount']['value'] = $data;
-          $page_data['amount']['class'] = ' transaction-amount transaction-amount-' . $transaction['act'];
+          $page_data['amount'] = array(
+            'label' => t('Amount'),
+            'value' => $data,
+            'class' => ' transaction-amount transaction-amount-' . $transaction['act'],
+          );
           break;
 
         case 'info':
-          /*$info = '';
-          foreach ($data as $key_item => $item) {
-            $info .= ucfirst($key_item) . ': ';
-            $info .= "$item; ";
-          }*/
-          $page_data['info']['label'] = 'Info';
-          $page_data['info']['value'] = $data;
+          foreach ($data as $item) {
+            $page_data[$item['label']] = array(
+              'label' => $item['label'],
+              'value' => $item['value'],
+            );
+          }
           break;
 
         default:
@@ -489,9 +495,9 @@ function payer_add_transaction_form($form) {
     '#default_value' => t('Manually'),
   );
 
-  $form['payer_transaction_info'] = array(
+  $form['payer_transaction_description'] = array(
     '#type' => 'textfield',
-    '#title' => t('Info'),
+    '#title' => t('Description'),
     '#maxlength' => 255,
   );
 
@@ -574,9 +580,15 @@ function payer_add_transaction_form_submit($form, &$form_state) {
   $vars['amount'] = number_format($vars['amount'], 2, '.', '');
 
   $vars['method'] = $form_state['values']['payer_transaction_method'];
-  $vars['info'] = $form_state['values']['payer_transaction_info'];
+  
+  if ($form_state['values']['payer_transaction_description']) {
+    $vars['info']['description'] = array(
+      'label' => 'Description',
+      'value' => $form_state['values']['payer_transaction_description'],
+    );
+  }
+  
   $vars['created'] = REQUEST_TIME;
-
   $transaction = new PayerTransaction($vars);
   $transaction->save();
 }
