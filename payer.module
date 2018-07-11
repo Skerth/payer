@@ -5,7 +5,7 @@
  * Payer engine module.
  */
 
-function payer_permission(){
+function payer_permission() {
   return array('view page payment'
   => array(
       'title' => t('View payment page'),
