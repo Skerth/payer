@@ -16,14 +16,14 @@ function payer_schema() {
         'type' => 'serial',
         'not null' => TRUE,
         'unsigned' => TRUE,
-        'description' => 'Unique transaction ID.',
+        'description' => 'Primary Key: Unique transaction ID.',
       ),
       'uid' => array(
         'type' => 'int',
         'not null' => TRUE,
         'unsigned' => TRUE,
         'default' => 0,
-        'description' => 'The {users}.uid that owns this transaction; initially, this is the user that created it.',
+        'description' => 'Foreign Key: The {users}.uid that owns this transaction; initially, this is the user that created it.',
       ),
       'status' => array(
         'type' => 'int',
@@ -58,14 +58,49 @@ function payer_schema() {
         'length' => 255,
         'default' => '',
       ),
-      'info' => array(
-        'type' => 'varchar',
-        'not null' => FALSE,
-        'length' => 255,
-        'default' => '',
-      ),
     ),
     'primary key' => array('tid'),
+    'foreign keys' => array(
+      'transaction_user' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
+  );
+  
+  $schema['payer_transactions_info'] = array(
+    'description' => 'The table stores additional transaction information.',
+    'fields' => array(
+      'iid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'description' => 'Primary Key: Unique transaction info ID.',
+      ),
+      'tid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'description' => 'Foreign Key: Transaction ID.',
+      ),
+      'label' => array(
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 255,
+      ),
+      'value' => array(
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 255,
+      ),
+    ),
+    'primary key' => array('iid'),
+    'foreign keys' => array(
+      'transaction' => array(
+        'table' => 'payer_transactions',
+        'columns' => array('tid' => 'tid'),
+      ),
+    ),
   );
 
   return $schema;
