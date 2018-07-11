@@ -100,7 +100,6 @@ function payer_rules_action_set_transaction($user, $act, $amount) {
   $vars['amount'] = number_format($vars['amount'], 2, '.', '');
 
   $vars['method'] = 'Module Rules';
-  $vars['info'] = '';
   $vars['created'] = REQUEST_TIME;
   
   $transaction = new PayerTransaction($vars);
