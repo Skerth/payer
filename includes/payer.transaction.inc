@@ -61,7 +61,7 @@ class PayerTransaction {
     }
 
     if (isset($this->transaction['tid'])) {
-      $this->transaction = $this->load_transaction();
+      $this->load_transaction();
     }
     else {
       $this->transaction['uid'] = $data['uid'];
@@ -70,7 +70,10 @@ class PayerTransaction {
       $this->transaction['amount'] = $data['amount'];
       $this->transaction['method'] = $data['method'];
       $this->transaction['created'] = $data['created'];
-      $this->transaction['info'] = $data['info'];
+      
+      if (isset($data['info'])) {
+        $this->transaction['info'] = $data['info'];
+      }
     }
   }
 
@@ -87,13 +90,13 @@ class PayerTransaction {
 
     if (!isset($this->transaction['tid'])) {
       $this->save_transaction();
-      if($this->transaction['status'] == 1) {
+      if ($this->transaction['status'] == 1) {
         $this->handler_user_balance();
       }
     }
     else {
       $this->update_transaction();
-      if($this->old_status == 0 && $this->transaction['status'] == 1) {
+      if ($this->old_status == 0 && $this->transaction['status'] == 1) {
         $this->handler_user_balance();
       }
     }
@@ -113,7 +116,12 @@ class PayerTransaction {
     }
     
     if (isset($data['info'])) {
-      $this->transaction['info'] = $data['info'];
+      if(isset($this->transaction['info'])) {
+        $this->transaction['info'] = array_merge($this->transaction['info'], $data['info']);
+      }
+      else {
+        $this->transaction['info'] = $data['info'];
+      }
     }
   }
   
@@ -131,7 +139,7 @@ class PayerTransaction {
    * Get a transaction from the database as an array.
    */
   private function load_transaction() {
-    return db_select('payer_transactions', 't')
+    $this->transaction = db_select('payer_transactions', 't')
       ->fields('t', array(
         'tid',
         'uid',
@@ -139,34 +147,91 @@ class PayerTransaction {
         'act',
         'amount',
         'created',
-        'info',
         'method',
       ))
       ->condition('t.tid', $this->transaction['tid'])
       ->execute()
       ->fetchAssoc();
+  
+    $result = db_select('payer_transactions_info', 'i')
+      ->fields('i', array(
+        'label',
+        'value',
+      ))
+      ->condition('i.tid', $this->transaction['tid'])
+      ->execute();
+    
+    if ($result->rowCount() > 0) {
+      foreach ($result as $info) {
+        $key = mb_strtolower($info->label);
+        $key = str_replace(' ', '_', $key);
+        $this->transaction['info'][$key] = array(
+          'label' => $info->label,
+          'value' => $info->value,
+        );
+      }
+    }
   }
   
   /**
    * Saving a new transaction to the database.
    */
   private function save_transaction() {
+    // Save main data:
     $this->transaction['tid'] = db_insert('payer_transactions')
-      ->fields($this->transaction)
+      ->fields(array(
+        'uid' => $this->transaction['uid'],
+        'act' => $this->transaction['act'],
+        'status' => $this->transaction['status'],
+        'amount' => $this->transaction['amount'],
+        'method' => $this->transaction['method'],
+        'created' => $this->transaction['created']
+      ))
       ->execute();
+    
+    // Save info:
+    if (isset($this->transaction['info'])) {
+      $query = db_insert('payer_transactions_info')
+        ->fields(array('tid', 'label', 'value'));
+      foreach ($this->transaction['info'] as $info) {
+        $query->values(array(
+          'tid' => $this->transaction['tid'],
+          'label' => $info['label'],
+          'value' => $info['value'],
+        ));
+      }
+      $query->execute();
+    }
   }
   
   /**
-   * Update transaction data. Only info and status are available for updating
+   * Update transaction data. Only status are available for updating
    */
   private function update_transaction() {
+    // Update status:
     db_update('payer_transactions')
       ->fields(array(
         'status' => $this->transaction['status'],
-        'info' => $this->transaction['info'],
       ))
       ->condition('tid', $this->transaction['tid'])
       ->execute();
+    
+    // Merge info:
+    if (isset($this->transaction['info'])) {
+      foreach ($this->transaction['info'] as $info) {
+        db_merge('payer_transactions_info')
+          ->key(array('label' => $info['label']))
+          ->insertFields(array(
+            'tid'  => $this->transaction['tid'],
+            'label'  => $info['label'],
+            'value'  => $info['value'],
+          ))
+          ->updateFields(array(
+            'value'  => $info['value'],
+          ))
+          ->execute();
+      }
+    }
   }
   
   /**
