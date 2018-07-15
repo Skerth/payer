@@ -41,30 +41,67 @@ function payer_rules_rules_action_info() {
   $rules = array();
   
   $rules['payer_transaction'] = array(
-      'label' => t('Transaction'),
-      'group' => t('Payer'),
-      'base' => 'payer_rules_action_set_transaction',
-      'parameter' => array(
-        'user' => array(
-          'type' => 'user',
-          'label' => t('User'),
-        ),
-        'act' => array(
-          'type' => 'text',
-          'label' => t('Act'),
-          'options list' => 'payer_rules_act_options',
-          'restriction' => 'input',
-          'default value' => '1',
-        ),
-        'amount' => array(
-          'type' => 'decimal',
-          'label' => t('Amount'),
-        ),
+    'label' => t('Transaction'),
+    'group' => t('Payer'),
+    'base' => 'payer_rules_action_set_transaction',
+    'parameter' => array(
+      'user' => array(
+        'type' => 'user',
+        'label' => t('User'),
       ),
-      'provides' => array(),
-    );
+      'act' => array(
+        'type' => 'text',
+        'label' => t('Act'),
+        'options list' => 'payer_rules_act_options',
+        'restriction' => 'input',
+        'default value' => '1',
+      ),
+      'amount' => array(
+        'type' => 'decimal',
+        'label' => t('Amount'),
+      ),
+      'info' => array(
+        'type' => 'list',
+        'label' => t('Info'),
+        'optional' => TRUE,
+      ),
+    ),
+    'provides' => array(),
+  );
+  
+  $rules['payer_transaction_info_create'] = array(
+    'label' => t('Create info item'),
+    'base' => 'payer_rules_info_item_create',
+    'group' => t('Payer'),
+    'parameter' => array(
+      'label' => array(
+        'type' => 'text',
+        'label' => t('Label'),
+      ),
+      'value' => array(
+        'type' => 'text',
+        'label' => t('Value'),
+      ),
+    ),
+    'provides' => array(
+      'info_item' => array(
+        'type' => 'payer_info',
+        'label' => t('Info added'),
+      ),
+    ),
+  );
   
   return $rules;
+}
+
+/**
+ * Data info item.
+ */
+function payer_rules_info_item_create($label, $value) {
+  $info['label'] = $label;
+  $info['value'] = $value;
+  
+  return array('info_item' => $info);
 }
 
 /**
@@ -73,7 +110,7 @@ function payer_rules_rules_action_info() {
 function payer_rules_is_balance_negative($user, $amount) {
   $balance = PayerTransaction::get_user_balance($user);
   $sum_balance = PayerTransaction::calc_sum_balance(0, $balance, $amount);
-
+  
   if($sum_balance >= 0) {
     return TRUE;
   }
@@ -90,17 +127,21 @@ function payer_rules_act_options() {
   return $options;
 }
 
-function payer_rules_action_set_transaction($user, $act, $amount) {
+function payer_rules_action_set_transaction($user, $act, $amount, $info = NULL) {
   $vars = array();
   $vars['uid'] = $user->uid;
   $vars['status'] = 1;
   $vars['act'] = $act;
-
+  
   $vars['amount'] = $amount;
   $vars['amount'] = number_format($vars['amount'], 2, '.', '');
-
-  $vars['method'] = 'Module Rules';
+  
+  $vars['method'] = 'Payer Rules';
   $vars['created'] = REQUEST_TIME;
+  
+  if (isset($info)) {
+    $vars['info'] = $info;
+  }
   
   $transaction = new PayerTransaction($vars);
   $transaction->save();
